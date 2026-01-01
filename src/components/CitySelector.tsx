@@ -143,7 +143,7 @@ export function CitySelector({ currentCity, onCityChange }: CitySelectorProps) {
               initial={{ opacity: 0, y: -10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              className="absolute top-full left-0 mt-2 w-85 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden z-50 border border-white/30"
+              className="absolute top-full left-1/2 -translate-x-1/2 sm:left-0 sm:translate-x-0 mt-2 w-80 max-w-[calc(100vw-2rem)] bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden z-50 border border-white/30"
             >
               <div className="p-4">
                 <div className="flex items-center justify-between mb-4">
@@ -206,14 +206,14 @@ export function CitySelector({ currentCity, onCityChange }: CitySelectorProps) {
                       className={`w-full flex items-center justify-between p-3.5 rounded-2xl transition-all group relative ${currentCity === city.name ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-gray-50 hover:bg-gray-100 text-gray-900'
                         }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <MapPin className={`w-4 h-4 ${currentCity === city.name ? 'text-white/80' : 'text-gray-400'}`} />
-                        <div className="text-left">
-                          <div className="font-bold leading-tight">{city.name}</div>
-                          <div className={`text-xs ${currentCity === city.name ? 'text-white/70' : 'text-gray-500'}`}>{city.condition}</div>
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <MapPin className={`w-4 h-4 flex-shrink-0 ${currentCity === city.name ? 'text-white/80' : 'text-gray-400'}`} />
+                        <div className="text-left min-w-0">
+                          <div className="font-bold leading-tight truncate">{city.name}</div>
+                          <div className={`text-xs truncate ${currentCity === city.name ? 'text-white/70' : 'text-gray-500'}`}>{city.condition}</div>
                         </div>
                       </div>
-                      <div className="text-2xl font-medium tracking-tighter">{city.temp}°</div>
+                      <div className="text-2xl font-medium tracking-tighter flex-shrink-0 ml-2">{city.temp}°</div>
 
                       {savedCities.length > 1 && (
                         <div
