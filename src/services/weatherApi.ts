@@ -39,6 +39,40 @@ export interface DailyData {
   windSpeed: number;
 }
 
+export interface CitySearchResult {
+  id: number;
+  name: string;
+  country?: string;
+  admin1?: string; // State/Province
+  latitude: number;
+  longitude: number;
+}
+
+export async function searchCities(query: string): Promise<CitySearchResult[]> {
+  if (!query || query.length < 2) return [];
+
+  try {
+    const response = await fetch(
+      `${GEO_API_URL}?name=${encodeURIComponent(query)}&count=10&language=zh&format=json`
+    );
+    const data = await response.json();
+
+    if (!data.results) return [];
+
+    return data.results.map((item: any) => ({
+      id: item.id,
+      name: item.name,
+      country: item.country,
+      admin1: item.admin1,
+      latitude: item.latitude,
+      longitude: item.longitude,
+    }));
+  } catch (error) {
+    console.error('Error searching cities:', error);
+    return [];
+  }
+}
+
 export async function fetchWeatherData(city: string): Promise<WeatherData> {
   try {
     // 1. Get coordinates for the city
@@ -55,13 +89,17 @@ export async function fetchWeatherData(city: string): Promise<WeatherData> {
     const weatherResponse = await fetch(
       `${WEATHER_API_URL}?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,surface_pressure,wind_speed_10m,visibility&hourly=temperature_2m,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max,wind_speed_10m_max&timezone=auto`
     );
+
+    if (!weatherResponse.ok) {
+      throw new Error('Weather API error');
+    }
+
     const weatherData = await weatherResponse.json();
 
     return transformOpenMeteoData(name, weatherData);
   } catch (error) {
     console.error('Error fetching weather data:', error);
-    // Fallback to mock data if API fails
-    return getMockWeatherData(city);
+    throw error;
   }
 }
 
@@ -90,27 +128,6 @@ function transformOpenMeteoData(cityName: string, data: any): WeatherData {
 }
 
 function transformHourlyData(hourly: any, timezone: string): HourlyData[] {
-  // Get current hour index
-  const currentHour = new Date().getHours();
-  // OpenMeteo returns hourly data starting from 00:00 today.
-  // We want to show from current hour onwards.
-  // Although simpler is just to take the first 24 and map them, but let's try to be accurate to "now".
-  // Actually the API returns 24h * 7 days.
-
-  const now = new Date();
-  const currentIsoHour = now.toISOString().slice(0, 13); // simplistic matching
-
-  // Let's just take the next 10 hours from the current time index?
-  // Easier: map all and filter?
-
-  const hours: HourlyData[] = [];
-  // Finding the index that corresponds to the current hour is tricky with timezones.
-  // However, the `time` array in response is ISO 8601 string array.
-
-  // We will just take the first 12 hours from "now" by string comparison or just assumption that the API returns from today 00:00.
-  // Actually, let's just grab the next 12 hours starting from the current hour index.
-  // The API returns 00:00 of the requested day.
-
   // A safe bet: find the index where time > now
   const nowTime = new Date().getTime();
 
@@ -122,11 +139,11 @@ function transformHourlyData(hourly: any, timezone: string): HourlyData[] {
     }
   }
 
-  // Adjust to include current hour if close enough? No, "future" forecast.
-  // Let's take startIndex - 1 to include "now" if possible.
+  // Include current hour if possible
   if (startIndex > 0) startIndex--;
 
-  for (let i = startIndex; i < startIndex + 10 && i < hourly.time.length; i++) {
+  const hours: HourlyData[] = [];
+  for (let i = startIndex; i < startIndex + 24 && i < hourly.time.length; i++) {
     hours.push({
       time: new Date(hourly.time[i]).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
       temp: Math.round(hourly.temperature_2m[i]),
@@ -207,7 +224,7 @@ function mapWeatherCodeToIcon(code: number): string {
     65: 'rain',
     66: 'rain',
     67: 'rain',
-    71: 'cloud', // Snow icon?
+    71: 'cloud',
     73: 'cloud',
     75: 'cloud',
     77: 'cloud',
@@ -220,74 +237,5 @@ function mapWeatherCodeToIcon(code: number): string {
     96: 'rain',
     99: 'rain',
   };
-  // Note: The UI seems to expect specific icon strings like 'sun', 'cloud', 'rain'.
-  // We can expand this if the UI supports more.
   return map[code] || 'cloud';
-}
-
-// Keep mock data as fallback
-function getMockWeatherData(city: string): WeatherData {
-  const mockData: Record<string, WeatherData> = {
-    '北京': {
-      location: '北京',
-      temp: 22,
-      condition: '晴朗',
-      high: 25,
-      low: 18,
-      humidity: 65,
-      windSpeed: 12,
-      pressure: 1013,
-      visibility: 10,
-      uvIndex: 5,
-      feelsLike: 23,
-      sunrise: '06:12',
-      sunset: '18:45',
-      hourly: generateHourlyData('晴朗'),
-      daily: generateDailyData(),
-    },
-    // ... we can reduce this list if the API works
-  };
-
-  return mockData[city] || {
-    location: city,
-    temp: 22,
-    condition: '晴朗',
-    high: 25,
-    low: 18,
-    humidity: 65,
-    windSpeed: 12,
-    pressure: 1013,
-    visibility: 10,
-    uvIndex: 5,
-    feelsLike: 23,
-    sunrise: '06:12',
-    sunset: '18:45',
-    hourly: generateHourlyData('晴朗'),
-    daily: generateDailyData(),
-  };
-}
-
-function generateHourlyData(condition: string): HourlyData[] {
-  const hours = ['现在', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00', '23:00', '00:00'];
-  const icons = condition === '晴朗' ? 'sun' : condition === '小雨' ? 'rain' : 'cloud';
-
-  return hours.map((time, index) => ({
-    time,
-    temp: 22 - index,
-    icon: index > 6 && condition === '晴朗' ? 'cloud' : icons,
-    windSpeed: 8 + Math.floor(Math.random() * 10),
-  }));
-}
-
-function generateDailyData(): DailyData[] {
-  const days = ['今天', '周四', '周五', '周六', '周日', '周一', '周二', '周三', '周四', '周五'];
-  const icons = ['sun', 'cloud', 'rain', 'drizzle', 'cloud', 'sun', 'sun', 'cloud', 'rain', 'cloud'];
-
-  return days.map((day, index) => ({
-    day,
-    icon: icons[index],
-    low: 16 + index,
-    high: 22 + index,
-    windSpeed: 10 + Math.floor(Math.random() * 15),
-  }));
 }
