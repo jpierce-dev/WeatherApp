@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { HourlyForecast } from './HourlyForecast';
 import { TenDayForecast } from './TenDayForecast';
 import { WeatherDetails } from './WeatherDetails';
@@ -6,8 +6,8 @@ import { MapCard } from './MapCard';
 import { ThemeToggle } from './ThemeToggle';
 import { CitySelector } from './CitySelector';
 import { WeatherAnimations } from './WeatherAnimations';
-import { motion } from 'motion/react';
-import { MoreHorizontal } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { MoreHorizontal, Loader2, RefreshCw } from 'lucide-react';
 import { getWeatherBackground, type WeatherCondition } from '../utils/weatherBackgrounds';
 import { useWeatherData } from '../hooks/useWeatherData';
 
@@ -21,43 +21,52 @@ interface City {
 export function WeatherApp() {
   const [location, setLocation] = useState('北京');
   const [isDark, setIsDark] = useState(false);
-  const { weatherData, loading, error } = useWeatherData(location);
+  const [currentTime, setCurrentTime] = useState('');
 
-  const handleCityChange = (city: City) => {
+  const { weatherData, loading, error, refetch } = useWeatherData(location);
+
+  // Live time update
+  useEffect(() => {
+    const updateTime = () => {
+      setCurrentTime(new Date().toLocaleTimeString('zh-CN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      }));
+    };
+
+    updateTime();
+    const timer = setInterval(updateTime, 1000 * 60); // Update every minute
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleCityChange = useCallback((city: City) => {
     setLocation(city.name);
-  };
+  }, []);
 
-  const currentTime = new Date().toLocaleTimeString('zh-CN', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  });
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-sky-400 via-sky-300 to-blue-100 flex items-center justify-center">
-        <div className="text-white text-2xl">加载中...</div>
-      </div>
-    );
-  }
-
-  if (error || !weatherData) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-sky-400 via-sky-300 to-blue-100 flex items-center justify-center">
-        <div className="text-white text-2xl">{error || '无法加载天气数据'}</div>
-      </div>
-    );
-  }
-
-  const backgroundClass = getWeatherBackground(weatherData.condition as WeatherCondition, isDark);
+  const backgroundClass = useMemo(() =>
+    getWeatherBackground((weatherData?.condition || '晴朗') as WeatherCondition, isDark),
+    [weatherData?.condition, isDark]
+  );
 
   return (
     <div className={`min-h-screen ${backgroundClass} overflow-auto transition-colors duration-700 relative`}>
-      {/* Weather Animations */}
-      <WeatherAnimations condition={weatherData.condition} />
+      <AnimatePresence>
+        {loading && !weatherData && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/10 backdrop-blur-sm"
+          >
+            <Loader2 className="w-10 h-10 text-white animate-spin" />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <WeatherAnimations condition={weatherData?.condition || '晴朗'} />
 
       <div className="max-w-5xl mx-auto p-8 relative z-10">
-        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -68,61 +77,86 @@ export function WeatherApp() {
             <CitySelector currentCity={location} onCityChange={handleCityChange} />
             <div className="flex items-center gap-2">
               <ThemeToggle isDark={isDark} onToggle={() => setIsDark(!isDark)} />
+              <button
+                onClick={refetch}
+                className="p-2 hover:bg-white/20 rounded-full transition-colors"
+                title="刷新"
+              >
+                <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+              </button>
               <button className="p-2 hover:bg-white/20 rounded-full transition-colors">
                 <MoreHorizontal className="w-6 h-6" />
               </button>
             </div>
           </div>
-          <div className="text-8xl font-extralight mb-2">{weatherData.temp}°</div>
-          <div className="text-2xl mb-1">{weatherData.condition}</div>
-          <div className="text-lg opacity-90">
-            最高 {weatherData.high}° 最低 {weatherData.low}°
-          </div>
+
+          {error ? (
+            <div className="py-20 text-center">
+              <p className="text-xl opacity-80 mb-4">{error}</p>
+              <button
+                onClick={refetch}
+                className="px-6 py-2 bg-white/20 hover:bg-white/30 rounded-full backdrop-blur-md transition-colors"
+              >
+                重试
+              </button>
+            </div>
+          ) : weatherData && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              key={location}
+            >
+              <div className="text-8xl font-extralight mb-2 tracking-tighter">{weatherData.temp}°</div>
+              <div className="text-2xl mb-1 font-medium">{weatherData.condition}</div>
+              <div className="text-lg opacity-90">
+                最高 {weatherData.high}° 最低 {weatherData.low}°
+              </div>
+            </motion.div>
+          )}
         </motion.div>
 
-        {/* Hourly Forecast */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="mb-4"
-        >
-          <HourlyForecast hourlyData={weatherData.hourly} />
-        </motion.div>
+        {weatherData && !error && (
+          <>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="mb-4"
+            >
+              <HourlyForecast hourlyData={weatherData.hourly} />
+            </motion.div>
 
-        {/* 10-Day Forecast */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="mb-4"
-        >
-          <TenDayForecast dailyData={weatherData.daily} />
-        </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="mb-4"
+            >
+              <TenDayForecast dailyData={weatherData.daily} />
+            </motion.div>
 
-        {/* Map */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          className="mb-4"
-        >
-          <MapCard location={weatherData.location} temp={weatherData.temp} condition={weatherData.condition} />
-        </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="mb-4"
+            >
+              <MapCard location={weatherData.location} temp={weatherData.temp} condition={weatherData.condition} />
+            </motion.div>
 
-        {/* Weather Details */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-        >
-          <WeatherDetails weatherData={weatherData} />
-        </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+            >
+              <WeatherDetails weatherData={weatherData} />
+            </motion.div>
 
-        {/* Footer */}
-        <div className="text-center text-white/70 mt-8 pb-8">
-          <div className="text-sm">{currentTime} 更新</div>
-        </div>
+            <div className="text-center text-white/70 mt-8 pb-8">
+              <div className="text-sm">{currentTime} 更新</div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

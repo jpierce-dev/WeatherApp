@@ -48,6 +48,9 @@ export interface SearchResult {
     admin1?: string;
 }
 
+/**
+ * Searches for cities by name using OpenMeteo Geocoding API
+ */
 export async function searchCities(query: string): Promise<SearchResult[]> {
     if (!query || query.length < 2) return [];
 
@@ -73,18 +76,24 @@ export async function searchCities(query: string): Promise<SearchResult[]> {
     }
 }
 
+/**
+ * Fetches weather data by city name (performs geocoding first)
+ */
 export async function fetchWeatherData(city: string): Promise<WeatherData> {
-    // 1. Get coordinates for the city
-    // Note: ideally we should cache the lat/long or pass it in, but to keep the signature compatible for now:
     const searchResults = await searchCities(city);
     if (searchResults.length === 0) {
         throw new Error('City not found');
     }
     const { latitude, longitude, name } = searchResults[0];
+    return fetchWeatherByCoords(latitude, longitude, name);
+}
 
-    // 2. Get weather data
+/**
+ * Fetches weather data directy by coordinates
+ */
+export async function fetchWeatherByCoords(lat: number, lon: number, locationName: string): Promise<WeatherData> {
     const weatherResponse = await fetch(
-        `${WEATHER_API_URL}?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,surface_pressure,wind_speed_10m,visibility&hourly=temperature_2m,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max,wind_speed_10m_max&timezone=auto`
+        `${WEATHER_API_URL}?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,surface_pressure,wind_speed_10m,visibility&hourly=temperature_2m,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max,wind_speed_10m_max&timezone=auto`
     );
 
     if (!weatherResponse.ok) {
@@ -92,10 +101,12 @@ export async function fetchWeatherData(city: string): Promise<WeatherData> {
     }
 
     const weatherData = await weatherResponse.json();
-    return transformOpenMeteoData(name, weatherData);
+    return transformOpenMeteoData(locationName, weatherData);
 }
 
-// Helper to fetch simple temp/condition for the list
+/**
+ * Helper to fetch minimal current weather info
+ */
 export async function fetchCurrentWeatherSimple(city: string): Promise<{ temp: number; condition: string }> {
     try {
         const data = await fetchWeatherData(city);
@@ -109,9 +120,7 @@ export async function fetchCurrentWeatherSimple(city: string): Promise<{ temp: n
 }
 
 function transformOpenMeteoData(cityName: string, data: any): WeatherData {
-    const current = data.current;
-    const daily = data.daily;
-    const hourly = data.hourly;
+    const { current, daily, hourly } = data;
 
     return {
         location: cityName,
@@ -125,60 +134,49 @@ function transformOpenMeteoData(cityName: string, data: any): WeatherData {
         visibility: Math.round(current.visibility / 1000),
         uvIndex: Math.round(daily.uv_index_max[0]),
         feelsLike: Math.round(current.apparent_temperature),
-        sunrise: new Date(daily.sunrise[0]).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
-        sunset: new Date(daily.sunset[0]).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
+        sunrise: formatLocalTime(daily.sunrise[0]),
+        sunset: formatLocalTime(daily.sunset[0]),
         hourly: transformHourlyData(hourly),
         daily: transformDailyData(daily),
     };
 }
 
+function formatLocalTime(isoString: string): string {
+    return new Date(isoString).toLocaleTimeString('zh-CN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+    });
+}
+
 function transformHourlyData(hourly: any): HourlyData[] {
-    // Get current hour index based on API time format (ISO8601)
-    // The API returns time in local time if timezone=auto is set.
-    const now = new Date();
-    const currentHourStr = now.toISOString().slice(0, 13); // simplistic
+    const nowTime = Date.now();
+    let startIndex = hourly.time.findIndex((t: string) => new Date(t).getTime() >= nowTime);
 
-    // Just find the index where time is closest to now
-    const nowTime = now.getTime();
-    let startIndex = 0;
+    if (startIndex === -1) startIndex = 0;
+    else if (startIndex > 0) startIndex--; // Include the current hour
 
-    for (let i = 0; i < hourly.time.length; i++) {
-        if (new Date(hourly.time[i]).getTime() >= nowTime) {
-            startIndex = i;
-            break;
-        }
-    }
-    // Back up 1 hour to show current if possible
-    if (startIndex > 0) startIndex--;
-
-    const hours: HourlyData[] = [];
-    for (let i = startIndex; i < startIndex + 12 && i < hourly.time.length; i++) {
-        hours.push({
-            time: new Date(hourly.time[i]).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
-            temp: Math.round(hourly.temperature_2m[i]),
-            icon: mapWeatherCodeToIcon(hourly.weather_code[i]),
-            windSpeed: Math.round(hourly.wind_speed_10m[i]),
-        });
-    }
-
-    return hours;
+    return hourly.time.slice(startIndex, startIndex + 12).map((time: string, i: number) => ({
+        time: formatLocalTime(time),
+        temp: Math.round(hourly.temperature_2m[startIndex + i]),
+        icon: mapWeatherCodeToIcon(hourly.weather_code[startIndex + i]),
+        windSpeed: Math.round(hourly.wind_speed_10m[startIndex + i]),
+    }));
 }
 
 function transformDailyData(daily: any): DailyData[] {
-    const days: DailyData[] = [];
-    for (let i = 0; i < 7 && i < daily.time.length; i++) {
-        const date = new Date(daily.time[i]);
+    return daily.time.slice(0, 7).map((time: string, i: number) => {
+        const date = new Date(time);
         const dayName = i === 0 ? '今天' : date.toLocaleDateString('zh-CN', { weekday: 'short' });
 
-        days.push({
+        return {
             day: dayName,
             icon: mapWeatherCodeToIcon(daily.weather_code[i]),
             low: Math.round(daily.temperature_2m_min[i]),
             high: Math.round(daily.temperature_2m_max[i]),
             windSpeed: Math.round(daily.wind_speed_10m_max[i]),
-        });
-    }
-    return days;
+        };
+    });
 }
 
 function mapWeatherCodeToCondition(code: number): string {

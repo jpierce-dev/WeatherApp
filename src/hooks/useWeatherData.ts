@@ -1,38 +1,42 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { fetchWeatherData, type WeatherData } from '../services/weatherApi';
 
+/**
+ * Custom hook to manage weather data fetching logic
+ * @param city The city name to fetch weather for
+ */
 export function useWeatherData(city: string) {
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let isMounted = true;
+  const loadWeatherData = useCallback(async (isManual = false) => {
+    try {
+      if (!isManual) setLoading(true);
+      setError(null);
 
-    async function loadWeatherData() {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await fetchWeatherData(city);
-        
-        if (isMounted) {
-          setWeatherData(data);
-          setLoading(false);
-        }
-      } catch (err) {
-        if (isMounted) {
-          setError('无法加载天气数据');
-          setLoading(false);
-        }
-      }
+      const data = await fetchWeatherData(city);
+      setWeatherData(data);
+    } catch (err) {
+      console.error('Weather fetch error:', err);
+      setError(err instanceof Error ? err.message : '无法加载天气数据');
+    } finally {
+      setLoading(false);
     }
-
-    loadWeatherData();
-
-    return () => {
-      isMounted = false;
-    };
   }, [city]);
 
-  return { weatherData, loading, error };
+  useEffect(() => {
+    loadWeatherData();
+  }, [loadWeatherData]);
+
+  const refetch = useCallback(() => {
+    loadWeatherData(true);
+  }, [loadWeatherData]);
+
+  return {
+    weatherData,
+    loading,
+    error,
+    refetch
+  };
 }
