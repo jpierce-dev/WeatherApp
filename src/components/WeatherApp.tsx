@@ -11,19 +11,19 @@ import { MoreHorizontal } from 'lucide-react';
 import { getWeatherBackground, type WeatherCondition } from '../utils/weatherBackgrounds';
 import { useWeatherData } from '../hooks/useWeatherData';
 
+interface City {
+  id: string;
+  name: string;
+  temp: number;
+  condition: string;
+}
 
 export function WeatherApp() {
-  const [location, setLocation] = useState(() => {
-    return localStorage.getItem('weather_last_city') || '北京';
-  });
+  const [location, setLocation] = useState('北京');
   const [isDark, setIsDark] = useState(false);
   const { weatherData, loading, error } = useWeatherData(location);
 
-  useEffect(() => {
-    localStorage.setItem('weather_last_city', location);
-  }, [location]);
-
-  const handleCityChange = (city: { name: string }) => {
+  const handleCityChange = (city: City) => {
     setLocation(city.name);
   };
 
