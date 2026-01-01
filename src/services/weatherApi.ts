@@ -93,7 +93,7 @@ export async function fetchWeatherData(city: string): Promise<WeatherData> {
  */
 export async function fetchWeatherByCoords(lat: number, lon: number, locationName: string): Promise<WeatherData> {
     const weatherResponse = await fetch(
-        `${WEATHER_API_URL}?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,surface_pressure,wind_speed_10m,visibility&hourly=temperature_2m,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max,wind_speed_10m_max&timezone=auto`
+        `${WEATHER_API_URL}?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,surface_pressure,wind_speed_10m,visibility&hourly=temperature_2m,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max,wind_speed_10m_max&timezone=auto&forecast_days=16&wind_speed_unit=ms`
     );
 
     if (!weatherResponse.ok) {
@@ -129,7 +129,7 @@ function transformOpenMeteoData(cityName: string, data: any): WeatherData {
         high: Math.round(daily.temperature_2m_max[0]),
         low: Math.round(daily.temperature_2m_min[0]),
         humidity: current.relative_humidity_2m,
-        windSpeed: Math.round(current.wind_speed_10m),
+        windSpeed: calculateWindLevel(current.wind_speed_10m),
         pressure: Math.round(current.surface_pressure),
         visibility: Math.round(current.visibility / 1000),
         uvIndex: Math.round(daily.uv_index_max[0]),
@@ -137,7 +137,7 @@ function transformOpenMeteoData(cityName: string, data: any): WeatherData {
         sunrise: formatLocalTime(daily.sunrise[0]),
         sunset: formatLocalTime(daily.sunset[0]),
         hourly: transformHourlyData(hourly),
-        daily: transformDailyData(daily),
+        daily: transformDailyData(daily, hourly),
     };
 }
 
@@ -160,21 +160,29 @@ function transformHourlyData(hourly: any): HourlyData[] {
         time: formatLocalTime(time),
         temp: Math.round(hourly.temperature_2m[startIndex + i]),
         icon: mapWeatherCodeToIcon(hourly.weather_code[startIndex + i]),
-        windSpeed: Math.round(hourly.wind_speed_10m[startIndex + i]),
+        windSpeed: calculateWindLevel(hourly.wind_speed_10m[startIndex + i]),
     }));
 }
 
-function transformDailyData(daily: any): DailyData[] {
-    return daily.time.slice(0, 7).map((time: string, i: number) => {
+function transformDailyData(daily: any, hourly: any): DailyData[] {
+    return daily.time.slice(0, 15).map((time: string, i: number) => {
         const date = new Date(time);
         const dayName = i === 0 ? '今天' : date.toLocaleDateString('zh-CN', { weekday: 'short' });
+
+        // Calculate average wind speed for this day from hourly data
+        const dayStart = i * 24;
+        const dayEnd = dayStart + 24;
+        const dayHourlyWind = hourly.wind_speed_10m.slice(dayStart, dayEnd);
+        const avgWind = dayHourlyWind.length > 0
+            ? dayHourlyWind.reduce((a: number, b: number) => a + b, 0) / dayHourlyWind.length
+            : daily.wind_speed_10m_max[i];
 
         return {
             day: dayName,
             icon: mapWeatherCodeToIcon(daily.weather_code[i]),
             low: Math.round(daily.temperature_2m_min[i]),
             high: Math.round(daily.temperature_2m_max[i]),
-            windSpeed: Math.round(daily.wind_speed_10m_max[i]),
+            windSpeed: calculateWindLevel(avgWind),
         };
     });
 }
@@ -207,4 +215,23 @@ function mapWeatherCodeToIcon(code: number): string {
         95: 'rain', 96: 'rain', 99: 'rain',
     };
     return map[code] || 'cloud';
+}
+
+/**
+ * Converts wind speed (m/s) to Beaufort scale level
+ */
+export function calculateWindLevel(ms: number): number {
+    if (ms < 0.3) return 0;
+    if (ms < 1.6) return 1;
+    if (ms < 3.4) return 2;
+    if (ms < 5.5) return 3;
+    if (ms < 8.0) return 4;
+    if (ms < 10.8) return 5;
+    if (ms < 13.9) return 6;
+    if (ms < 17.2) return 7;
+    if (ms < 20.8) return 8;
+    if (ms < 24.5) return 9;
+    if (ms < 28.5) return 10;
+    if (ms < 32.7) return 11;
+    return 12;
 }

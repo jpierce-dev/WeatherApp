@@ -27,7 +27,7 @@ export function HourlyForecast({ hourlyData }: HourlyForecastProps) {
             <div className="text-white">{hour.temp}°</div>
             <div className="flex items-center gap-1 text-white/70 text-xs">
               <Wind className="w-3 h-3" />
-              <span>{hour.windSpeed}</span>
+              <span>{hour.windSpeed}级</span>
             </div>
           </div>
         ))}

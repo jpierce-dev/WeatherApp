@@ -7,7 +7,7 @@ interface BackgroundGradient {
 
 export const weatherBackgrounds: Record<WeatherCondition, BackgroundGradient> = {
   '晴朗': {
-    light: 'bg-gradient-to-b from-sky-400 via-sky-300 to-blue-100',
+    light: 'bg-gradient-to-b from-blue-500 via-blue-400 to-blue-300',
     dark: 'bg-gradient-to-b from-slate-900 via-slate-800 to-slate-700',
   },
   '多云': {

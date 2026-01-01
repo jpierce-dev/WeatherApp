@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { HourlyForecast } from './HourlyForecast';
-import { TenDayForecast } from './TenDayForecast';
+import { FifteenDayForecast } from './FifteenDayForecast';
 import { WeatherDetails } from './WeatherDetails';
 import { MapCard } from './MapCard';
 import { ThemeToggle } from './ThemeToggle';
@@ -19,11 +19,46 @@ interface City {
 }
 
 export function WeatherApp() {
-  const [location, setLocation] = useState('北京');
+  const [location, setLocation] = useState(() => {
+    return localStorage.getItem('weather_last_location') || '北京';
+  });
   const [isDark, setIsDark] = useState(false);
   const [currentTime, setCurrentTime] = useState('');
 
   const { weatherData, loading, error, refetch } = useWeatherData(location);
+
+  // Detect current city on mount if no last location is saved
+  useEffect(() => {
+    const hasLastLocation = localStorage.getItem('weather_last_location');
+
+    const detectLocation = async () => {
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(async (position) => {
+          try {
+            const { latitude, longitude } = position.coords;
+            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&accept-language=zh`);
+            const data = await response.json();
+            const city = data.address.city || data.address.town || data.address.village || data.address.municipality;
+            if (city) {
+              const cityName = city.replace(/市|区|县/g, '');
+              setLocation(cityName);
+              if (!hasLastLocation) {
+                localStorage.setItem('weather_last_location', cityName);
+              }
+            }
+          } catch (err) {
+            console.error("Geolocation failed to get city name", err);
+          }
+        }, (err) => {
+          console.warn("Geolocation permission denied or failed", err);
+        });
+      }
+    };
+
+    if (!hasLastLocation) {
+      detectLocation();
+    }
+  }, []);
 
   // Live time update
   useEffect(() => {
@@ -42,6 +77,7 @@ export function WeatherApp() {
 
   const handleCityChange = useCallback((city: City) => {
     setLocation(city.name);
+    localStorage.setItem('weather_last_location', city.name);
   }, []);
 
   const backgroundClass = useMemo(() =>
@@ -132,7 +168,7 @@ export function WeatherApp() {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="mb-4"
             >
-              <TenDayForecast dailyData={weatherData.daily} />
+              <FifteenDayForecast dailyData={weatherData.daily} />
             </motion.div>
 
             <motion.div

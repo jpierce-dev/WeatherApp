@@ -47,7 +47,8 @@ export function CitySelector({ currentCity, onCityChange }: CitySelectorProps) {
             return { ...city, ...weather };
           })
         );
-        setSavedCities(updatedCities);
+        // Filter out unknown cities
+        setSavedCities(updatedCities.filter(c => c.condition !== '未知' && c.condition !== '加载中'));
       } catch (err) {
         console.error('Failed to refresh weather for saved cities', err);
       }
@@ -99,6 +100,8 @@ export function CitySelector({ currentCity, onCityChange }: CitySelectorProps) {
     }
 
     const weather = await fetchCurrentWeatherSimple(result.name);
+    if (weather.condition === '未知') return; // Don't add unknown cities
+
     const newCity: City = {
       id: `${Date.now()}-${result.id}`,
       name: result.name,
@@ -143,11 +146,11 @@ export function CitySelector({ currentCity, onCityChange }: CitySelectorProps) {
               initial={{ opacity: 0, y: -10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              className="absolute top-full left-0 mt-2 w-80 max-w-[calc(100vw-4rem)] bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden z-50 border border-white/30"
+              className="absolute top-full left-0 mt-2 w-80 max-w-[calc(100vw-4rem)] bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden z-50 border border-white/30 text-gray-900"
             >
               <div className="p-4">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-gray-900 font-bold">我的城市</h3>
+                  <h3 className="text-gray-800 font-bold">我的位置</h3>
                   <button
                     onClick={handleToggleAdding}
                     className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
@@ -163,31 +166,70 @@ export function CitySelector({ currentCity, onCityChange }: CitySelectorProps) {
                     className="mb-4 space-y-2 overflow-hidden"
                   >
                     <div className="relative">
-                      <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                      <div
+                        className="absolute w-5 h-5 flex items-center justify-center"
+                        style={{
+                          left: '0.875rem',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          color: '#9CA3AF',
+                          pointerEvents: 'none',
+                          zIndex: 10
+                        }}
+                      >
+                        <Search className="w-4 h-4" />
+                      </div>
                       <input
                         type="text"
                         placeholder="搜索全球城市..."
-                        className="w-full bg-gray-100 rounded-xl pl-9 pr-4 py-2.5 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        className="w-full bg-gray-50/50 border border-gray-100 hover:bg-white focus:bg-white focus:border-gray-200 rounded-2xl text-base font-medium placeholder-gray-400 transition-all focus:outline-none shadow-sm"
+                        style={{
+                          color: '#111827',
+                          paddingLeft: '2.75rem',
+                          paddingRight: '2.5rem',
+                          paddingTop: '0.625rem',
+                          paddingBottom: '0.625rem',
+                          height: '2.75rem',
+                          lineHeight: '1.5rem'
+                        }}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         autoFocus
                       />
                       {isSearching && (
-                        <Loader2 className="absolute right-3 top-3 w-4 h-4 text-gray-400 animate-spin" />
+                        <div
+                          className="absolute flex items-center justify-center w-5 h-5"
+                          style={{
+                            right: '0.875rem',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            zIndex: 10
+                          }}
+                        >
+                          <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#3B82F6' }} />
+                        </div>
                       )}
                     </div>
                     {searchResults.length > 0 && (
-                      <div className="max-h-48 overflow-y-auto bg-gray-50/50 rounded-xl border border-gray-100 divide-y divide-gray-100">
+                      <div className="max-h-56 overflow-y-auto bg-gray-50/80 backdrop-blur-sm rounded-xl border border-gray-100/50 divide-y divide-gray-100 shadow-sm">
                         {searchResults.map((result) => (
                           <button
                             key={result.id}
                             onClick={() => handleAddCity(result)}
-                            className="w-full text-left px-4 py-3 text-sm hover:bg-white transition-colors flex flex-col"
+                            className="w-full text-left hover:bg-white transition-all flex justify-between group"
+                            style={{
+                              padding: '0.75rem 1rem',
+                              alignItems: 'center',
+                              minHeight: '3.5rem'
+                            }}
                           >
-                            <span className="font-semibold text-gray-900">{result.name}</span>
-                            <span className="text-xs text-gray-500">
-                              {[result.admin1, result.country].filter(Boolean).join(', ')}
-                            </span>
+                            <div className="flex flex-col min-w-0">
+                              <span className="font-semibold text-base" style={{ color: '#111827' }}>{result.name}</span>
+                              <span className="text-xs truncate" style={{ color: '#6B7280', marginTop: '0.125rem' }}>
+                                {[result.admin1, result.country].filter(Boolean).join(', ')}
+                              </span>
+                            </div>
+                            <Plus className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0" style={{ color: '#3B82F6' }} />
                           </button>
                         ))}
                       </div>
@@ -196,35 +238,38 @@ export function CitySelector({ currentCity, onCityChange }: CitySelectorProps) {
                 )}
 
                 <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
-                  {savedCities.map((city) => (
-                    <button
+                  {savedCities.map((city, index) => (
+                    <div
                       key={city.id}
-                      onClick={() => {
-                        onCityChange(city);
-                        setIsOpen(false);
-                      }}
-                      className={`w-full flex items-center justify-between p-3.5 rounded-2xl transition-all group relative ${currentCity === city.name ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-gray-50 hover:bg-gray-100 text-gray-900'
-                        }`}
+                      className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-gray-100 text-gray-800 transition-colors group relative"
                     >
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <MapPin className={`w-4 h-4 flex-shrink-0 ${currentCity === city.name ? 'text-white/80' : 'text-gray-400'}`} />
+                      <button
+                        onClick={() => {
+                          onCityChange(city);
+                          setIsOpen(false);
+                        }}
+                        className="flex items-center gap-3 flex-1 min-w-0"
+                      >
+                        {index === 0 ? (
+                          <MapPin className="w-4 h-4 flex-shrink-0 text-blue-500" />
+                        ) : (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteCity(e as any, city.id);
+                            }}
+                            className="w-4 h-4 flex-shrink-0 text-gray-400 hover:text-red-500 transition-colors"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        )}
                         <div className="text-left min-w-0">
-                          <div className="font-bold leading-tight truncate">{city.name}</div>
-                          <div className={`text-xs truncate ${currentCity === city.name ? 'text-white/70' : 'text-gray-500'}`}>{city.condition}</div>
+                          <div className="font-semibold leading-tight truncate">{city.name}</div>
+                          <div className="text-xs truncate text-gray-500">{city.condition}</div>
                         </div>
-                      </div>
-                      <div className="text-2xl font-medium tracking-tighter flex-shrink-0 ml-2">{city.temp}°</div>
-
-                      {savedCities.length > 1 && (
-                        <div
-                          onClick={(e) => handleDeleteCity(e, city.id)}
-                          className={`absolute -right-1 -top-1 opacity-0 group-hover:opacity-100 p-1 rounded-full shadow-sm transition-all transform hover:scale-110 ${currentCity === city.name ? 'bg-white text-blue-500' : 'bg-white border border-gray-100 text-gray-400'
-                            }`}
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </div>
-                      )}
-                    </button>
+                      </button>
+                      <div className="text-2xl font-medium tracking-tighter flex-shrink-0 ml-2 text-gray-800">{city.temp}°</div>
+                    </div>
                   ))}
                 </div>
               </div>

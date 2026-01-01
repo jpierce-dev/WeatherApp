@@ -8,7 +8,7 @@ interface WeatherDetailsProps {
 
 export function WeatherDetails({ weatherData }: WeatherDetailsProps) {
   const dewPoint = Math.round(weatherData.temp - (100 - weatherData.humidity) / 5);
-  
+
   const detailsData = [
     {
       icon: <Gauge className="w-4 h-4" />,
@@ -80,7 +80,7 @@ export function WeatherDetails({ weatherData }: WeatherDetailsProps) {
       icon: <Wind className="w-4 h-4" />,
       label: '风速',
       value: weatherData.windSpeed.toString(),
-      unit: 'km/h',
+      unit: '级',
       description: '东北风',
       detailedInfo: {
         title: '风力详情',
@@ -88,15 +88,15 @@ export function WeatherDetails({ weatherData }: WeatherDetailsProps) {
           <div className="space-y-3">
             <div className="flex justify-between">
               <span>风速：</span>
-              <span className="font-medium">{weatherData.windSpeed} km/h</span>
+              <span className="font-medium">{weatherData.windSpeed}级</span>
             </div>
             <div className="flex justify-between">
-              <span>风力等级：</span>
+              <span>风力描述：</span>
               <span className="font-medium">
-                {weatherData.windSpeed < 12 ? '1级 微风' : 
-                 weatherData.windSpeed < 20 ? '2级 轻风' : 
-                 weatherData.windSpeed < 29 ? '3级 微风' : 
-                 weatherData.windSpeed < 39 ? '4级 和风' : '5级 清劲风'}
+                {weatherData.windSpeed <= 1 ? '微风' :
+                  weatherData.windSpeed <= 3 ? '轻风' :
+                    weatherData.windSpeed <= 5 ? '清劲风' :
+                      weatherData.windSpeed <= 7 ? '强风' : '大风'}
               </span>
             </div>
             <div className="flex justify-between">
@@ -222,10 +222,10 @@ export function WeatherDetails({ weatherData }: WeatherDetailsProps) {
             <div className="flex justify-between">
               <span>能见度等级：</span>
               <span className="font-medium">
-                {weatherData.visibility > 10 ? '优' : 
-                 weatherData.visibility > 8 ? '良' : 
-                 weatherData.visibility > 5 ? '中' : 
-                 weatherData.visibility > 2 ? '较差' : '差'}
+                {weatherData.visibility > 10 ? '优' :
+                  weatherData.visibility > 8 ? '良' :
+                    weatherData.visibility > 5 ? '中' :
+                      weatherData.visibility > 2 ? '较差' : '差'}
               </span>
             </div>
             <div className="w-full bg-gray-200 h-3 rounded-full overflow-hidden mt-2">
@@ -270,7 +270,7 @@ export function WeatherDetails({ weatherData }: WeatherDetailsProps) {
               <div className="absolute left-1/2 top-0 w-0.5 h-full bg-gray-400"></div>
               <div
                 className="h-full bg-gradient-to-r from-blue-500 to-red-500 rounded-full"
-                style={{ 
+                style={{
                   width: `${Math.min(Math.max(((weatherData.pressure - 980) / 70) * 100, 0), 100)}%`,
                 }}
               />
