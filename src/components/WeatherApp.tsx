@@ -8,7 +8,7 @@ import { CitySelector } from './CitySelector';
 import { WeatherAnimations } from './WeatherAnimations';
 import { motion, AnimatePresence } from 'motion/react';
 import { MoreHorizontal, Loader2, RefreshCw } from 'lucide-react';
-import { getWeatherBackground, type WeatherCondition } from '../utils/weatherBackgrounds';
+import { getWeatherBackground, getThemeColor, type WeatherCondition } from '../utils/weatherBackgrounds';
 import { useWeatherData } from '../hooks/useWeatherData';
 
 interface City {
@@ -84,6 +84,23 @@ export function WeatherApp() {
     getWeatherBackground((weatherData?.condition || '晴朗') as WeatherCondition, isDark),
     [weatherData?.condition, isDark]
   );
+
+  // Dynamic theme color for Android/Chrome
+  useEffect(() => {
+    const color = getThemeColor((weatherData?.condition || '晴朗') as WeatherCondition, isDark);
+
+    // Update theme-color meta tag
+    let metaTag = document.querySelector('meta[name="theme-color"]');
+    if (!metaTag) {
+      metaTag = document.createElement('meta');
+      metaTag.setAttribute('name', 'theme-color');
+      document.head.appendChild(metaTag);
+    }
+    metaTag.setAttribute('content', color);
+
+    // Also update apple-mobile-web-app-status-bar-style if needed, 
+    // although black-translucent usually handles it on iOS.
+  }, [weatherData?.condition, isDark]);
 
   return (
     <div className={`min-h-screen ${backgroundClass} overflow-auto transition-colors duration-700 relative`}>
