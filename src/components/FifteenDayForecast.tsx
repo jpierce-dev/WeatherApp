@@ -26,22 +26,22 @@ export function FifteenDayForecast({ dailyData }: FifteenDayForecastProps) {
                             key={index}
                             className="flex items-center justify-between py-2 border-b border-white/10 last:border-b-0"
                         >
-                            <div className="flex items-center gap-3 flex-1 min-w-0">
-                                <div className="text-white w-12 text-sm font-medium whitespace-nowrap">{day.day}</div>
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <div className="text-white w-10 text-sm font-medium whitespace-nowrap">{day.day}</div>
                                 <div className="text-white flex-shrink-0">
                                     {day.icon === 'sun' && <Sun className="w-5 h-5 text-yellow-300" />}
                                     {day.icon === 'cloud' && <Cloud className="w-5 h-5 text-white/80" />}
                                     {day.icon === 'rain' && <CloudRain className="w-5 h-5 text-blue-300" />}
                                     {day.icon === 'drizzle' && <CloudDrizzle className="w-5 h-5 text-blue-200" />}
                                 </div>
-                                <div className="flex items-center gap-1 text-white/70 text-sm w-12 flex-shrink-0">
+                                <div className="flex items-center gap-1 text-white/70 text-xs sm:text-sm flex-shrink-0">
                                     <Wind className="w-3 h-3" />
                                     <span>{day.windSpeed}级</span>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2 sm:gap-3 w-auto sm:w-[200px] justify-end flex-shrink-0">
-                                <div className="text-white text-sm w-10 text-right">{day.low}°</div>
-                                <div className="w-24 h-1 bg-white/20 rounded-full overflow-hidden relative flex-shrink-0">
+                            <div className="flex items-center gap-2 justify-end flex-shrink-0 ml-2">
+                                <div className="text-white text-sm w-8 text-right font-medium">{day.low}°</div>
+                                <div className="w-16 sm:w-24 h-1 bg-white/20 rounded-full overflow-hidden relative flex-shrink-0">
                                     <div
                                         className="h-full bg-gradient-to-r from-blue-300 to-orange-300 rounded-full absolute"
                                         style={{
@@ -50,7 +50,7 @@ export function FifteenDayForecast({ dailyData }: FifteenDayForecastProps) {
                                         }}
                                     />
                                 </div>
-                                <div className="text-white text-sm w-10 text-left">{day.high}°</div>
+                                <div className="text-white text-sm w-8 text-left font-medium">{day.high}°</div>
                             </div>
                         </div>
                     );
