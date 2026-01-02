@@ -27,30 +27,30 @@ export function FifteenDayForecast({ dailyData }: FifteenDayForecastProps) {
                             className="flex items-center justify-between py-2 border-b border-white/10 last:border-b-0"
                         >
                             <div className="flex items-center gap-2 flex-1 min-w-0">
-                                <div className="text-white w-9 text-sm font-medium whitespace-nowrap">{day.day}</div>
+                                <div className="text-white w-10 text-sm font-medium whitespace-nowrap">{day.day}</div>
                                 <div className="text-white flex-shrink-0">
-                                    {day.icon === 'sun' && <Sun className="w-4 h-4 text-yellow-300" />}
-                                    {day.icon === 'cloud' && <Cloud className="w-4 h-4 text-white/80" />}
-                                    {day.icon === 'rain' && <CloudRain className="w-4 h-4 text-blue-300" />}
-                                    {day.icon === 'drizzle' && <CloudDrizzle className="w-4 h-4 text-blue-200" />}
+                                    {day.icon === 'sun' && <Sun className="w-5 h-5 text-yellow-300" />}
+                                    {day.icon === 'cloud' && <Cloud className="w-5 h-5 text-white/80" />}
+                                    {day.icon === 'rain' && <CloudRain className="w-5 h-5 text-blue-300" />}
+                                    {day.icon === 'drizzle' && <CloudDrizzle className="w-5 h-5 text-blue-200" />}
                                 </div>
-                                <div className="flex items-center gap-1 text-white/50 text-xs w-10 flex-shrink-0">
-                                    <Wind className="w-2.5 h-2.5" />
+                                <div className="flex items-center gap-1 text-white/70 text-xs w-10 flex-shrink-0">
+                                    <Wind className="w-3 h-3" />
                                     <span>{day.windSpeed}级</span>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2 justify-end flex-shrink-0">
-                                <div className="text-white text-xs w-7 text-right opacity-80">{day.low}°</div>
-                                <div className="w-14 sm:w-20 h-1.5 bg-black/20 rounded-full overflow-hidden relative flex-shrink-0">
+                                <div className="text-white text-sm w-8 text-right font-medium">{day.low}°</div>
+                                <div className="w-16 sm:w-24 h-1 bg-white/20 rounded-full overflow-hidden relative flex-shrink-0">
                                     <div
-                                        className="h-full bg-gradient-to-r from-blue-400 via-yellow-400 to-orange-500 rounded-full absolute shadow-sm"
+                                        className="h-full bg-gradient-to-r from-blue-300 to-orange-300 rounded-full absolute"
                                         style={{
                                             left: `${barLeft}%`,
                                             width: `${Math.max(barWidth, 5)}%`
                                         }}
                                     />
                                 </div>
-                                <div className="text-white text-xs w-7 text-left font-medium">{day.high}°</div>
+                                <div className="text-white text-sm w-8 text-left font-medium">{day.high}°</div>
                             </div>
                         </div>
                     );
