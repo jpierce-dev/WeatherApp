@@ -15,7 +15,9 @@ export default defineConfig({
         name: 'iPad Weather App',
         short_name: 'Weather',
         description: 'A beautiful weather app for iPad',
-        theme_color: '#ffffff',
+        theme_color: '#0ea5e9', // Matching sky-500
+        background_color: '#0ea5e9',
+        display: 'standalone',
         icons: [
           {
             src: 'pwa-192x192.png',
