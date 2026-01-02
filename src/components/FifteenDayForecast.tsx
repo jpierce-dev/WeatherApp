@@ -12,7 +12,7 @@ export function FifteenDayForecast({ dailyData }: FifteenDayForecastProps) {
 
     return (
         <div className="bg-white/20 backdrop-blur-xl rounded-2xl p-4 border border-white/30">
-            <div className="flex items-center gap-2 mb-4 text-white/80 text-sm">
+            <div className="flex items-center gap-2 mb-6 text-white/80 text-sm">
                 <Calendar className="w-4 h-4" />
                 <span>15 天预报</span>
             </div>
@@ -24,7 +24,7 @@ export function FifteenDayForecast({ dailyData }: FifteenDayForecastProps) {
                     return (
                         <div
                             key={index}
-                            className="flex items-center gap-2 py-4 border-b border-white/10 last:border-b-0"
+                            className="flex items-center gap-3 py-5 border-b border-white/10 last:border-b-0"
                         >
                             {/* Prefix info with fixed widths */}
                             <div className="text-white text-sm font-medium w-11 flex-shrink-0 whitespace-nowrap text-ellipsis overflow-hidden">{day.day}</div>
@@ -44,7 +44,7 @@ export function FifteenDayForecast({ dailyData }: FifteenDayForecastProps) {
                             {/* Temperature section taking remaining space */}
                             <div className="flex-1 flex items-center gap-2 justify-end min-w-0">
                                 <div className="text-white text-sm w-7 text-right font-medium flex-shrink-0">{day.low}°</div>
-                                <div className="flex-1 max-w-[120px] h-1 bg-white/20 rounded-full overflow-hidden relative min-w-[30px]">
+                                <div className="flex-1 max-w-[120px] h-1.5 bg-white/20 rounded-full overflow-hidden relative min-w-[30px]">
                                     <div
                                         className="h-full bg-gradient-to-r from-blue-300 to-orange-300 rounded-full absolute"
                                         style={{
