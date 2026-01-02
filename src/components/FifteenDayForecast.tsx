@@ -24,7 +24,7 @@ export function FifteenDayForecast({ dailyData }: FifteenDayForecastProps) {
                     return (
                         <div
                             key={index}
-                            className="flex items-center gap-2 py-3 border-b border-white/10 last:border-b-0"
+                            className="flex items-center gap-2 py-4 border-b border-white/10 last:border-b-0"
                         >
                             {/* Prefix info with fixed widths */}
                             <div className="text-white text-sm font-medium w-11 flex-shrink-0 whitespace-nowrap text-ellipsis overflow-hidden">{day.day}</div>
