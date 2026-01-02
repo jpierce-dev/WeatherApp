@@ -24,23 +24,27 @@ export function FifteenDayForecast({ dailyData }: FifteenDayForecastProps) {
                     return (
                         <div
                             key={index}
-                            className="grid grid-cols-[2.8rem_1.5rem_2.8rem_1fr] items-center gap-1 sm:gap-4 py-2 border-b border-white/10 last:border-b-0"
+                            className="flex items-center gap-2 py-3 border-b border-white/10 last:border-b-0"
                         >
-                            <div className="text-white text-sm font-medium whitespace-nowrap overflow-hidden text-ellipsis">{day.day}</div>
-                            <div className="text-white flex justify-center">
+                            {/* Prefix info with fixed widths */}
+                            <div className="text-white text-sm font-medium w-11 flex-shrink-0 whitespace-nowrap text-ellipsis overflow-hidden">{day.day}</div>
+
+                            <div className="text-white w-8 flex-shrink-0 flex justify-center">
                                 {day.icon === 'sun' && <Sun className="w-5 h-5 text-yellow-300" />}
                                 {day.icon === 'cloud' && <Cloud className="w-5 h-5 text-white/80" />}
                                 {day.icon === 'rain' && <CloudRain className="w-5 h-5 text-blue-300" />}
                                 {day.icon === 'drizzle' && <CloudDrizzle className="w-5 h-5 text-blue-200" />}
                             </div>
-                            <div className="flex items-center gap-0.5 text-white/70 text-[10px]">
-                                <Wind className="w-3 h-3" />
-                                <span>{day.windSpeed}级</span>
+
+                            <div className="flex items-center gap-0.5 text-white/70 text-[10px] w-12 flex-shrink-0">
+                                <Wind className="w-3 h-3 flex-shrink-0" />
+                                <span className="whitespace-nowrap">{day.windSpeed}级</span>
                             </div>
 
-                            <div className="flex items-center gap-2 justify-end min-w-0">
+                            {/* Temperature section taking remaining space */}
+                            <div className="flex-1 flex items-center gap-2 justify-end min-w-0">
                                 <div className="text-white text-sm w-7 text-right font-medium flex-shrink-0">{day.low}°</div>
-                                <div className="flex-1 h-1 bg-white/20 rounded-full overflow-hidden relative min-w-[40px]">
+                                <div className="flex-1 max-w-[120px] h-1 bg-white/20 rounded-full overflow-hidden relative min-w-[30px]">
                                     <div
                                         className="h-full bg-gradient-to-r from-blue-300 to-orange-300 rounded-full absolute"
                                         style={{
